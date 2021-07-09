@@ -1,46 +1,47 @@
 import cv2
-from matplotlib import pyplot
 import os
-import imutils
-from mtcnn.mtcnn import MTCNN
 
 
-def capturarImagen():
-    nombre = 'rostro_sin_tapabocas'
-    direccion = 'D:\\fotos'
-    carpeta = direccion + '\\' + nombre
+def reconocer():
+    dataPath = 'E:\\Projects\\S3\\Arquitectura\\DeteccionRostro_v1.0\\Data'
+    imagePaths = os.listdir(dataPath)
+    print('imagePaths=', imagePaths)
 
-    if not os.path.exists(carpeta):
-        print('Carpeta creada:', carpeta)
-        os.makedirs(carpeta)
+    face_recognizer = cv2.face.LBPHFaceRecognizer_create()
 
-    detector = MTCNN()
-    cap = cv2.VideoCapture(0)
-    count = 0
+    face_recognizer.read('modeloLBPHFace.xml')
+
+    cap = cv2.VideoCapture('Videoexterno.mp4')
+
+    faceClassif = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
     while True:
-        print("ejecutando...")
         ret, frame = cap.read()
-        gris = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        copia = frame.copy()
+        if ret == False: break
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        auxFrame = gray.copy()
 
-        caras = detector.detect_faces(copia)
+        faces = faceClassif.detectMultiScale(gray, 1.3, 5)
 
-        print("LEN CARAS", len(caras))
-        for i in range(len(caras)):
-            x1, y1, ancho, alto = caras[i]['box']
-            x2, y2, = x1 + ancho, y1 + alto
-            cara_reg = frame[y1:y2, x1:x2]
-            cara_reg = cv2.resize(cara_reg, (150, 200), interpolation=cv2.INTER_CUBIC)
-            cv2.imwrite(carpeta + "\\rostro_{}.jpg".format(count), cara_reg)
-            print("GUARDANDO EN -->", carpeta + "\\rostro_{}.jpg");
-            count += 1
-            print("capturando...", count)
-        cv2.imshow("Entrenamiento", frame)
+        for (x, y, w, h) in faces:
+            rostro = auxFrame[y:y + h, x:x + w]
+            rostro = cv2.resize(rostro, (150, 150), interpolation=cv2.INTER_CUBIC)
+            result = face_recognizer.predict(rostro)
 
-        t = cv2.waitKey(1)
-        if (t == 27 or count >= 10):
+            cv2.putText(frame, '{}'.format(result), (x, y - 5), 1, 1.3, (255, 255, 0), 1, cv2.LINE_AA)
+
+            # LBPHFace
+            if result[1] < 70:
+                cv2.putText(frame, '{}'.format(imagePaths[result[0]]), (x, y - 25), 2, 1.1, (0, 255, 0), 1, cv2.LINE_AA)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            else:
+                cv2.putText(frame, 'Desconocido', (x, y - 20), 2, 0.8, (0, 0, 255), 1, cv2.LINE_AA)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+        cv2.imshow('frame', frame)
+        k = cv2.waitKey(1)
+        if k == 27:
             break
 
     cap.release()
-    cv2.destroAllWindows()
+    cv2.destroyAllWindows()
