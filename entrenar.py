@@ -2,26 +2,30 @@ import cv2
 import os
 import numpy as np
 
+
 def entrenar():
-    direccion = "D:/fotos/rostro_sin_tapabocas"
-    lista = os.listdir(direccion)
+    dataPath = 'E:\\Projects\\S3\\Arquitectura\\DeteccionRostro_v1.0\\Data'
+    peopleList = os.listdir(dataPath)
+    print('Lista de personas: ', peopleList)
 
-    etiquetas = []
-    rostros = []
-    con = 0
+    labels = []
+    facesData = []
+    label = 0
 
-    for nameDir in lista:
-        nombre = direccion + '/' + nameDir
+    for nameDir in peopleList:
+        personPath = dataPath + '/' + nameDir
+        print('Leyendo las imágenes')
 
-        for fileName in os.listdir(direccion):
-            etiquetas.append(con)
-            rostros.append(cv2.imread(nombre + '/' + fileName, 0))
+        for fileName in os.listdir(personPath):
+            print('Rostros: ', nameDir + '/' + fileName)
+            labels.append(label)
+            facesData.append(cv2.imread(personPath + '/' + fileName, 0))
+        label = label + 1
 
-        con += 1
-        print("Generado para ", con)
+    face_recognizer = cv2.face.LBPHFaceRecognizer_create()
 
-    print("Entrenando modelo")
-    reconocimiento = cv2.face.LBPHFaceRecognizer_create()
-    reconocimiento.train(rostros, np.array(etiquetas))
-    reconocimiento.write('modeloLBP.xml')
-    print("modelo creado")
+    print("Entrenando...")
+    face_recognizer.train(facesData, np.array(labels))
+
+    face_recognizer.write('modeloLBPHFace.xml')
+    print("Modelo almacenado...")
